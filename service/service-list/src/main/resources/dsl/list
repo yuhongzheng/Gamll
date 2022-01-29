@@ -1,0 +1,407 @@
+GET _search
+{
+  "query": {
+    "match_all": {}
+  }
+}
+
+#关键字搜索 -- title
+GET goods/info/_search
+{
+  "query": {
+    "match": {
+      "title": {
+        "query": "小米手机",
+        "operator": "or"
+      }
+    }
+  }
+}
+
+#filter -- 分类ID检索, TM检索
+GET goods/info/_search
+{
+  "query": {
+    "bool": {
+      "filter": {
+        "term": {
+          "category3Id": "61"
+        }
+      }
+    }
+  }
+}
+
+GET goods/info/_search
+{
+  "query": {
+    "bool": {
+      "filter": {
+        "term": {
+          "tmId": "4"
+        }
+      }
+    }
+  }
+}
+
+#nest属性值查询 -- 平台属性值
+
+#3.1、filter： 不计算评分， 查询效率高；有缓存；  （推荐）
+#    + term： 精确匹配；
+#    + match： 模糊匹配， 倒排索引；
+#3.2、must： 要计算评分，查询效率低；无缓存；
+#    +term： 精确匹配 ， 要评分；
+#    +match：模糊匹配， 要评分；
+#text 类型的分词字段而言，只能用match 才能够查询到结果；
+
+GET goods/info/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "nested": {
+            "path": "attrs",
+            "query": {
+              "bool": {
+                "filter": [
+                  {
+                    "term": {
+                      "attrs.attrId": "4"
+                    }
+                  },
+                  {
+                    "term": {
+                      "attrs.attrValue": "128GB"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
+
+#高亮
+GET goods/info/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "match": {
+            "title": {
+              "query": "小米手机",
+              "operator": "or"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "highlight": {
+    "pre_tags": ["<span style=color:red>"],
+    "fields": {"title": {}},
+    "post_tags": ["</span>"]
+  }
+}
+
+#排序
+GET goods/info/_search
+{
+  "sort": [
+    {
+      "hotScore": {
+        "order": "desc"
+      }
+    },
+    {
+      "_score": {
+        "order": "desc"
+      }
+    }
+  ]
+}
+
+
+#聚合
+
+#  品牌
+GET goods/info/_search
+{
+  "aggs": {
+    "tmIdAgg": {
+      "terms": {
+        "field": "tmId",
+        "size": 10
+      },
+      "aggs": {
+        "tmNameAgg": {
+          "terms": {
+            "field": "tmName",
+            "size": 10
+          }
+        },
+        "tmUrlAgg": {
+          "terms": {
+            "field": "tmLogoUrl",
+            "size": 10
+          }
+        }
+      }
+    }
+  }
+}
+
+#  平台属性
+GET goods/info/_search
+{
+  "aggs": {
+    "attrAgg":{
+      "nested": {
+        "path": "attrs"
+      },
+      "aggs": {
+        "attrIdAgg":{
+          "terms": {
+            "field": "attrs.attrId",
+            "size": 10
+          },
+          "aggs": {
+            "attrNameAgg": {
+              "terms": {
+                "field": "attrs.attrName"
+              }
+            },
+            "attrValueAgg": {
+              "terms": {
+                "field": "attrs.attrValue"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+#关键字搜索 -- title
+#filter -- 分类ID检索, TM检索
+#nest属性值查询 -- 平台属性值
+#高亮
+#排序
+#聚合
+#  品牌
+#  平台属性
+
+GET goods/info/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "match": {
+            "title": {
+              "query": "小米手机",
+              "operator": "and"
+            }
+          }
+
+        }
+      ],
+
+      "filter": [
+        {
+          "term": {
+            "category3Id": "61"
+          }
+        },
+
+        {
+          "term": {
+            "tmId": "4"
+          }
+        },
+
+        {
+          "nested":{
+            "path": "attrs",
+            
+            "query": {
+              "bool":{
+                "filter": [
+                  {
+                    "term":{
+                      "attrs.attrValue": "128GB"
+                    }
+                  },
+
+                  {
+                    "term": {
+                      "attrs.attrId": "4"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+
+  "highlight": {
+    "pre_tags": ["<span style=color:red>"],
+    "fields": {"title": {}},
+    "post_tags": ["</span>"]
+  },
+
+  "sort": [
+    {
+      "hotScore": {
+        "order": "desc"
+      }
+    }
+  ],
+
+  "aggs": {
+    "tmAgg": {
+      "terms": {
+        "field": "tmId",
+        "size": 10
+      },
+      "aggs": {
+        "tmNameAgg": {
+          "terms": {
+            "field": "tmName",
+            "size": 10
+          }
+        },
+
+        "tmUrlLogAgg": {
+          "terms": {
+            "field": "tmLogoUrl",
+            "size": 10
+          }
+        }
+      }
+    },
+
+    "attrAgg": {
+      "nested": {
+        "path": "attrs"
+      },
+      "aggs": {
+        "attrIdAgg": {
+          "terms": {
+            "field": "attrs.attrId",
+            "size": 10
+          },
+
+          "aggs": {
+            "attrNameAgg": {
+              "terms": {
+                "field": "attrs.attrName",
+                "size": 10
+              }
+            },
+
+            "attrValueAgg": {
+              "terms": {
+                "field": "attrs.attrValue",
+                "size": 10
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+
+
+{
+    "goods": {
+        "mappings": {
+            "info": {
+                "properties": {
+                    "attrs": {
+                        "type": "nested",
+                        "properties": {
+                            "attrId": {
+                                "type": "long"
+                            },
+                            "attrName": {
+                                "type": "keyword"
+                            },
+                            "attrValue": {
+                                "type": "keyword"
+                            }
+                        }
+                    },
+                    "category1Id": {
+                        "type": "long"
+                    },
+                    "category1Name": {
+                        "type": "keyword"
+                    },
+                    "category2Id": {
+                        "type": "long"
+                    },
+                    "category2Name": {
+                        "type": "keyword"
+                    },
+                    "category3Id": {
+                        "type": "long"
+                    },
+                    "category3Name": {
+                        "type": "keyword"
+                    },
+                    "createTime": {
+                        "type": "date"
+                    },
+                    "defaultImg": {
+                        "type": "keyword",
+                        "index": false
+                    },
+                    "hotScore": {
+                        "type": "long"
+                    },
+                    "id": {
+                        "type": "long"
+                    },
+                    "price": {
+                        "type": "double"
+                    },
+                    "title": {
+                        "type": "text",
+                        "analyzer": "ik_max_word"
+                    },
+                    "tmId": {
+                        "type": "long"
+                    },
+                    "tmLogoUrl": {
+                        "type": "keyword"
+                    },
+                    "tmName": {
+                        "type": "keyword"
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
